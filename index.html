@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運気を纏うワインリスト</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+JP:wght@200;300;400&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8D5A0;
+    --gold-dark: #8B6914;
+    --cream: #F8F3E8;
+    --dark: #1A1208;
+    --charcoal: #2C2416;
+    --muted: #6B5B3A;
+    --rose: #C47A6B;
+    --rose-light: #E8C4BC;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    font-family: 'Noto Serif JP', serif;
+    perspective: 2000px;
+  }
+
+  /* ========== ページめくりシステム ========== */
+  .book-wrapper {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+  }
+
+  .page {
+    width: 100%;
+    background: var(--cream);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,168,76,0.3);
+    transform-origin: left center;
+    backface-visibility: hidden;
+    will-change: transform;
+    display: none;
+    position: relative;
+  }
+
+  .page::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(201,168,76,0.4);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .page.active {
+    display: block;
+    animation: pageEnter 0.7s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards;
+  }
+
+  .page.exit {
+    display: block;
+    animation: pageExit 0.7s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards;
+  }
+
+  @keyframes pageExit {
+    0%   { transform: rotateY(0deg) translateX(0); opacity: 1; box-shadow: 0 30px 80px rgba(0,0,0,0.7); }
+    50%  { transform: rotateY(-90deg) translateX(-20px); opacity: 0.5; box-shadow: -20px 10px 60px rgba(0,0,0,0.4); }
+    100% { transform: rotateY(-180deg) translateX(-40px); opacity: 0; box-shadow: none; }
+  }
+
+  @keyframes pageEnter {
+    0%   { transform: rotateY(180deg) translateX(40px); opacity: 0; }
+    50%  { transform: rotateY(90deg) translateX(20px); opacity: 0.5; }
+    100% { transform: rotateY(0deg) translateX(0); opacity: 1; box-shadow: 0 30px 80px rgba(0,0,0,0.7); }
+  }
+
+  @keyframes pageExitPrev {
+    0%   { transform: rotateY(0deg) translateX(0); opacity: 1; }
+    50%  { transform: rotateY(90deg) translateX(20px); opacity: 0.5; }
+    100% { transform: rotateY(180deg) translateX(40px); opacity: 0; }
+  }
+
+  @keyframes pageEnterPrev {
+    0%   { transform: rotateY(-180deg) translateX(-40px); opacity: 0; }
+    50%  { transform: rotateY(-90deg) translateX(-20px); opacity: 0.5; }
+    100% { transform: rotateY(0deg) translateX(0); opacity: 1; }
+  }
+
+  .page.exit-prev { display: block; animation: pageExitPrev 0.7s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards; }
+  .page.enter-prev { display: block; animation: pageEnterPrev 0.7s cubic-bezier(0.645, 0.045, 0.355, 1.000) forwards; }
+
+  /* ナビゲーション */
+  .nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 0;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .nav-btn {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    background: none;
+    border: 1px solid rgba(201,168,76,0.3);
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+    opacity: 0.7;
+  }
+
+  .nav-btn:hover:not(:disabled) {
+    opacity: 1;
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.06);
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.15;
+    cursor: default;
+  }
+
+  .page-indicator {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .page-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(201,168,76,0.25);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .page-dot.active {
+    background: var(--gold);
+    transform: scale(1.4);
+  }
+
+  .page-label {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 10px;
+    color: rgba(201,168,76,0.4);
+    letter-spacing: 3px;
+    text-align: center;
+    margin-top: 10px;
+    font-weight: 200;
+  }
+
+  /* ========== コンテンツスタイル ========== */
+  .cover {
+    background: var(--dark);
+    padding: 80px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 60% at 50% 30%, rgba(201,168,76,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 20% 80%, rgba(196,122,107,0.06) 0%, transparent 60%);
+  }
+
+  .corner {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-color: var(--gold);
+    border-style: solid;
+    opacity: 0.6;
+  }
+  .corner.tl { top: 20px; left: 20px; border-width: 1px 0 0 1px; }
+  .corner.tr { top: 20px; right: 20px; border-width: 1px 1px 0 0; }
+  .corner.bl { bottom: 20px; left: 20px; border-width: 0 0 1px 1px; }
+  .corner.br { bottom: 20px; right: 20px; border-width: 0 1px 1px 0; }
+
+  .cover-ornament {
+    font-family: 'IM Fell English SC', serif;
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 6px;
+    opacity: 0.7;
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-ornament::before, .cover-ornament::after { content: '✦'; margin: 0 12px; font-size: 8px; }
+
+  .cover-title-ja {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 200;
+    font-size: 13px;
+    color: var(--gold-light);
+    letter-spacing: 8px;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cover-title-en {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 48px;
+    color: var(--gold);
+    letter-spacing: 3px;
+    line-height: 1.1;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 8px;
+  }
+
+  .cover-title-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 22px;
+    color: var(--gold-light);
+    opacity: 0.7;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 40px;
+  }
+
+  .cover-divider {
+    width: 120px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0 auto 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cover-sub {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 200;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 4px;
+    position: relative;
+    z-index: 1;
+    line-height: 2.2;
+  }
+
+  .section-header {
+    padding: 48px 60px 32px;
+    position: relative;
+    text-align: center;
+  }
+
+  .section-header.champagne {
+    background: linear-gradient(180deg, #F8F3E8 0%, #F3ECD8 100%);
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+  }
+
+  .section-header.rose {
+    background: linear-gradient(180deg, #FAF0EE 0%, #F5E6E2 100%);
+    border-bottom: 1px solid rgba(196,122,107,0.2);
+  }
+
+  .section-header.red {
+    background: linear-gradient(180deg, #1A1208 0%, #2C1810 100%);
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+  }
+
+  .section-category {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--gold);
+    margin-bottom: 8px;
+    opacity: 0.8;
+  }
+
+  .section-title-ja {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 200;
+    font-size: 18px;
+    letter-spacing: 5px;
+    color: var(--charcoal);
+    margin-bottom: 4px;
+  }
+
+  .section-header.red .section-title-ja { color: var(--gold-light); }
+
+  .section-desc {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .section-header.red .section-desc { color: rgba(201,168,76,0.5); }
+
+  .wine-card {
+    padding: 40px 60px;
+    border-bottom: 1px solid rgba(201,168,76,0.12);
+    position: relative;
+    transition: background 0.3s;
+  }
+
+  .wine-card:last-child { border-bottom: none; }
+
+  .wine-card.champagne-card { background: #F8F3E8; }
+  .wine-card.champagne-card:hover { background: #F3ECD8; }
+  .wine-card.rose-card { background: #FAF0EE; }
+  .wine-card.rose-card:hover { background: #F5E6E2; }
+  .wine-card.red-card { background: #1C140A; border-bottom-color: rgba(201,168,76,0.1); }
+  .wine-card.red-card:hover { background: #221A0E; }
+
+  .fortune-tag {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .fortune-badge {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 300;
+    font-size: 10px;
+    letter-spacing: 3px;
+    padding: 4px 12px;
+    border: 1px solid;
+    color: var(--gold);
+    border-color: rgba(201,168,76,0.4);
+    background: rgba(201,168,76,0.06);
+  }
+
+  .rose-card .fortune-badge { color: var(--rose); border-color: rgba(196,122,107,0.4); background: rgba(196,122,107,0.06); }
+  .red-card .fortune-badge { color: var(--gold); border-color: rgba(201,168,76,0.3); background: rgba(201,168,76,0.05); }
+
+  .wine-name-en {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: 26px;
+    color: var(--charcoal);
+    letter-spacing: 1px;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .red-card .wine-name-en { color: var(--gold-light); }
+
+  .wine-name-tagline {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--gold-dark);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .red-card .wine-name-tagline { color: var(--gold); opacity: 0.7; }
+
+  .wine-price {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--charcoal);
+    letter-spacing: 1px;
+    line-height: 1.2;
+    margin-bottom: 20px;
+  }
+
+  .red-card .wine-price { color: var(--gold-light); }
+
+  .wine-divider {
+    width: 40px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.4;
+    margin-bottom: 16px;
+  }
+
+  .rose-card .wine-divider { background: var(--rose); }
+
+  .wine-story {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 200;
+    font-size: 12.5px;
+    line-height: 2.2;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .red-card .wine-story { color: rgba(201,168,76,0.55); }
+
+  .page-ornament {
+    text-align: center;
+    padding: 24px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    color: var(--gold);
+    opacity: 0.3;
+    letter-spacing: 8px;
+  }
+
+  .booklet-footer {
+    background: var(--dark);
+    padding: 40px 60px;
+    text-align: center;
+    position: relative;
+  }
+
+  .footer-ornament {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--gold);
+    opacity: 0.5;
+    letter-spacing: 2px;
+    line-height: 2;
+  }
+
+  .footer-line {
+    width: 80px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 16px auto;
+    opacity: 0.4;
+  }
+
+  .footer-note {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 200;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 600px) {
+    .cover { padding: 60px 36px; }
+    .cover-title-en { font-size: 36px; }
+    .section-header { padding: 36px 36px 24px; }
+    .wine-card { padding: 32px 36px; }
+    .booklet-footer { padding: 32px 36px; }
+    .nav-btn { padding: 8px 16px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="book-wrapper" id="bookWrapper">
+
+  <!-- PAGE 0: カバー -->
+  <div class="page active" id="page-0">
+    <div class="cover">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="cover-ornament">Curated Wine Selection</div>
+      <div class="cover-title-ja">運 気 を 纏 う</div>
+      <div class="cover-title-en">Fortune<br>Wines</div>
+      <div class="cover-title-sub">6月誕生月・祝祭のワインリスト</div>
+      <div class="cover-divider"></div>
+      <div class="cover-sub">
+        古より伝わる星と酒の縁起<br>
+        今宵、あなたの運命を変える一本を
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 1: 白泡の章 -->
+  <div class="page" id="page-1">
+    <div class="section-header champagne">
+      <div class="section-category">Blanc de Blancs · Champagne</div>
+      <div class="section-title-ja">白 泡 の 章　― 金 運 と 総 運 ―</div>
+      <div class="section-desc">Golden bubbles summon fortune</div>
+    </div>
+
+    <div class="wine-card champagne-card">
+      <div class="fortune-tag">
+        <span class="fortune-badge">✦ 金 運</span>
+        <span class="fortune-badge">覇 王 運</span>
+      </div>
+      <div class="wine-name-en">Armand de Brignac</div>
+      <div class="wine-name-tagline">"最強の札を引く一杯"</div>
+      <div class="wine-price">￥ASK</div>
+      <div class="wine-divider"></div>
+      <div class="wine-story">
+        トランプのエース・オブ・スペード——最強の牌をそのままボトルに宿したシャンパン。世界のVIPとセレブリティが勝負の夜に選ぶ、勝者の証。この一本を開けた夜、運命は動き始める。
+      </div>
+    </div>
+
+    <div class="wine-card champagne-card">
+      <div class="fortune-tag">
+        <span class="fortune-badge">✦ 運 気 浄 化</span>
+        <span class="fortune-badge">名 声 運</span>
+      </div>
+      <div class="wine-name-en">Louis Roederer Cristal</div>
+      <div class="wine-name-tagline">"透き通った未来を映す一杯"</div>
+      <div class="wine-price">￥ASK</div>
+      <div class="wine-divider"></div>
+      <div class="wine-story">
+        ロシア皇帝アレクサンドル2世への献上品として誕生した、透明ボトルの至高の一本。クリスタルのように澄み渡った運気を呼び込む。選ばれた者だけが手にする、清廉な輝きの中に宿る幸運。
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: 薔薇泡の章 -->
+  <div class="page" id="page-2">
+    <div class="section-header rose">
+      <div class="section-category">Rosé · Champagne</div>
+      <div class="section-title-ja">薔 薇 泡 の 章　― 恋 愛 運 と 縁 結 び ―</div>
+      <div class="section-desc">Rose-tinted bubbles that weave destiny</div>
+    </div>
+
+    <div class="wine-card rose-card" style="position:relative; overflow:hidden;">
+      <div style="position:absolute; top:0; right:0; background:linear-gradient(135deg,#C47A6B,#A05848); color:#FAF0EE; font-family:'Noto Serif JP',serif; font-weight:200; font-size:9px; letter-spacing:3px; padding:8px 18px; clip-path:polygon(12px 0%,100% 0%,100% 100%,0% 100%);">
+        ♊ 双子座の守護ワイン
+      </div>
+      <div class="fortune-tag" style="margin-top:8px;">
+        <span class="fortune-badge">✦ 合 縁 奇 縁</span>
+        <span class="fortune-badge">恋 愛 運</span>
+        <span class="fortune-badge">6 月 誕 生 日</span>
+      </div>
+      <div class="wine-name-en">Dom Pérignon Rosé</div>
+      <div class="wine-name-tagline">"双子座に生まれた者だけが宿す、薔薇色の奇跡"</div>
+      <div class="wine-price">￥ASK</div>
+      <div class="wine-divider"></div>
+      <div class="wine-story">
+        5月21日〜6月21日、双子座の季節に生まれた人は、星座の中で最も社交的で多才な魂を持つとされる。祝祭と縁を司るシャンパン——そのなかでも薔薇色に輝く美しさこそ、6月生まれのあなたに送りたい最強の一本。<br><br>修道士ドン・ペリニヨンが「星を飲んでいる！」と叫んだ伝説の泡は、今宵あなたの縁を星座のように結ぶ。この一杯を交わした二人の物語は、必ず美しく続いていく。
+      </div>
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid rgba(196,122,107,0.2); font-family:'Cormorant Garamond',serif; font-style:italic; font-size:11px; color:var(--rose); opacity:0.6; letter-spacing:2px;">
+        ♊ Gemini — May 21 to June 20 — The Twins of the Zodiac
+      </div>
+    </div>
+
+    <div class="wine-card rose-card">
+      <div class="fortune-tag">
+        <span class="fortune-badge">✦ 強 運</span>
+        <span class="fortune-badge">擁 護 者 運</span>
+      </div>
+      <div class="wine-name-en">Veuve Clicquot Rosé</div>
+      <div class="wine-name-tagline">"強運な女が選ぶ一杯"</div>
+      <div class="wine-price">￥ASK</div>
+      <div class="wine-divider"></div>
+      <div class="wine-story">
+        夫を亡くした27歳の未亡人（ヴーヴ）が、逆境の淵から世界最高のシャンパンメゾンを築いた。その強さと華やかさを一口に。飲んだ者に宿る、覚悟と幸運——強く美しく在り続けるすべての人へ。
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: 赤の章 + フッター -->
+  <div class="page" id="page-3">
+    <div class="section-header red">
+      <div class="section-category" style="color:rgba(201,168,76,0.6);">Grand Vin · Bordeaux</div>
+      <div class="section-title-ja" style="color:var(--gold-light);">赤 の 章　― 地 位 運 と 王 者 の 運 ―</div>
+      <div class="section-desc" style="color:rgba(201,168,76,0.4);">The saint's blessing upon the chosen</div>
+    </div>
+
+    <div class="wine-card red-card">
+      <div class="fortune-tag">
+        <span class="fortune-badge">✦ 地 位 運</span>
+        <span class="fortune-badge">聖 人 加 護</span>
+        <span class="fortune-badge">王 者 の 運</span>
+      </div>
+      <div class="wine-name-en">Château Pétrus</div>
+      <div class="wine-name-tagline">"聖人の加護を受ける、王者の一杯"</div>
+      <div class="wine-price">￥ASK</div>
+      <div class="wine-divider" style="background:var(--gold);"></div>
+      <div class="wine-story">
+        その名は聖書に由来する——イエスがシモンに与えた「岩（ペトロス）」の称号。格付けなき孤高の王者として、エリザベス女王、ケネディ大統領、時代の頂点に立つ者たちに愛され続けた伝説のワイン。この一本が、あなたの格を引き上げる。
+      </div>
+    </div>
+
+    <div class="wine-card red-card">
+      <div class="fortune-tag">
+        <span class="fortune-badge">✦ 夢 実 現 運</span>
+        <span class="fortune-badge">共 創 運</span>
+        <span class="fortune-badge">最 高 傑 作</span>
+      </div>
+      <div class="wine-name-en">Opus One</div>
+      <div class="wine-name-tagline">"二つの魂が生んだ、最高傑作の一杯"</div>
+      <div class="wine-price">￥ASK</div>
+      <div class="wine-divider" style="background:var(--gold);"></div>
+      <div class="wine-story">
+        1970年、ハワイの浜辺で出会った二人の伝説——ボルドーの貴族ロスチャイルド男爵と、ナパの革命児ロバート・モンダヴィ。握手一つで構想し、1978年に完成した夢の結晶がオーパスワン。<br><br>「Opus One（作品第一番）」——その名は音楽家が生涯をかけて贈る最高傑作を意味する。旧世界の格式と新世界の情熱が出逢ったとき、奇跡は生まれる。今夜の出逢いもまた、あなたの人生の傑作の序章かもしれない。
+      </div>
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid rgba(201,168,76,0.15); font-family:'Cormorant Garamond',serif; font-style:italic; font-size:11px; color:rgba(201,168,76,0.45); letter-spacing:2px;">
+        Napa Valley · Rothschild × Mondavi · Est. 1978
+      </div>
+    </div>
+
+    <div class="booklet-footer">
+      <div class="footer-ornament">
+        "In vino, fortuna"<br>
+        <span style="font-size:11px; font-style:normal; letter-spacing:3px;">ワインの中に、運命がある</span>
+      </div>
+      <div class="footer-line"></div>
+      <div class="footer-note">今宵の一本が、まなみさんの運命を動かす</div>
+    </div>
+  </div>
+
+</div><!-- /book-wrapper -->
+
+<!-- ナビゲーション -->
+<div class="nav-bar">
+  <button class="nav-btn" id="prevBtn" disabled onclick="changePage(-1)">← 前のページ</button>
+  <div class="page-indicator" id="pageIndicator"></div>
+  <button class="nav-btn" id="nextBtn" onclick="changePage(1)">次のページ →</button>
+</div>
+<div class="page-label" id="pageLabel">Cover</div>
+
+<script>
+  const pages = document.querySelectorAll('.page');
+  const labels = ['Cover', '白泡の章', '薔薇泡の章', '赤の章'];
+  let current = 0;
+  let isAnimating = false;
+
+  // ドットインジケーター生成
+  const indicator = document.getElementById('pageIndicator');
+  pages.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'page-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToPage(i);
+    indicator.appendChild(dot);
+  });
+
+  function updateNav() {
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === pages.length - 1;
+    document.querySelectorAll('.page-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+    });
+    document.getElementById('pageLabel').textContent = labels[current];
+  }
+
+  function changePage(dir) {
+    goToPage(current + dir);
+  }
+
+  function goToPage(next) {
+    if (isAnimating || next === current || next < 0 || next >= pages.length) return;
+    isAnimating = true;
+
+    const prev = current;
+    const goingForward = next > prev;
+
+    const exitClass = goingForward ? 'exit' : 'exit-prev';
+    const enterClass = goingForward ? 'active' : 'enter-prev';
+
+    // 現在ページをアニメーションで退場
+    pages[prev].classList.remove('active', 'enter-prev');
+    pages[prev].classList.add(exitClass);
+
+    // 次ページを表示開始（少し遅延）
+    setTimeout(() => {
+      pages[prev].className = 'page'; // リセット
+      pages[prev].style.display = 'none';
+
+      pages[next].style.display = 'block';
+      pages[next].className = 'page ' + enterClass;
+
+      current = next;
+      updateNav();
+
+      setTimeout(() => {
+        isAnimating = false;
+      }, 700);
+    }, 350);
+  }
+
+  // スワイプ対応（スマホ）
+  let touchStartX = 0;
+  document.getElementById('bookWrapper').addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+  });
+  document.getElementById('bookWrapper').addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) changePage(diff > 0 ? 1 : -1);
+  });
+
+  updateNav();
+</script>
+
+</body>
+</html>
