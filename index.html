@@ -680,6 +680,9 @@
 
       current = next;
       updateNav();
+      
+      // ページ切り替え時に最上部へスクロール
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
       setTimeout(() => {
         isAnimating = false;
